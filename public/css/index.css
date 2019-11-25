@@ -1,0 +1,13 @@
+body {
+  margin: 0;
+  overflow: hidden;
+}
+
+canvas {
+  margin-left: auto;
+  margin-right: auto;
+  display: block;
+  background-color: #006994;
+}
+
+/*# sourceMappingURL=index.css.map */
