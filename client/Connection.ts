@@ -19,7 +19,10 @@ class Connection {
     this.removeCharacter = removeCharacter;
 
 
-    this.ws = new WebSocket(window.location.href.replace("http", "ws"));
+    let wsLocation = window.location.href.replace("http", "ws");
+    if(wsLocation.indexOf("localhost") == -1) wsLocation += "/ws";
+    else wsLocation = wsLocation.replace(/(\d{2,5})/, ((_, p) => (parseInt(p) + 1).toString()));
+    this.ws = new WebSocket(wsLocation);
 
     this.ws.onopen = () => {
       this.ws.send(JSON.stringify({
