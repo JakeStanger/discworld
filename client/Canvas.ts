@@ -226,7 +226,6 @@ class Canvas {
   private renderCharacterLabels(offsetX: number, offsetY: number) {
     const ctx = this.context;
 
-
     ctx.save();
     const matrix = ctx.getTransform();
     ctx.resetTransform();
@@ -234,19 +233,20 @@ class Canvas {
     ctx.font = "18px Source Code Pro";
 
     this.characters.forEach(character => {
-      ctx.fillStyle = "#ffffff";
-
       const cx = character.x * this.gridSize + offsetX + this.gridSize;
       const cy = character.y * this.gridSize + offsetY - this.gridSize;
 
       const x = (cx * matrix.a) + (cy * matrix.c) + matrix.e;
       const y = (cx * matrix.b) + (cy * matrix.d) + matrix.f;
 
+      ctx.fillStyle = "#00000033";
+      ctx.fillRect(x-10, y-20, character.name.length * 11 + 20, 9+20);
+
+      ctx.fillStyle = "#ffffff";
       ctx.fillText(character.name, x, y);
     });
 
     ctx.restore();
-
   }
 
 
