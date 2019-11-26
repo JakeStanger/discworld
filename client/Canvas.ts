@@ -20,6 +20,9 @@ class Canvas {
 
   private scene: number[];
 
+  private mouseX: number;
+  private mouseY: number;
+
   constructor(canvas: HTMLCanvasElement, gridSize: number, mapSize: number, playerId: string) {
     this.canvas = canvas;
     this.context = canvas.getContext("2d");
@@ -36,15 +39,31 @@ class Canvas {
     this.ground = new Image(gridSize, gridSize);
     this.ground.src = "/img/ground.png";
 
-    this.ground.onload = this.resize;
+    this.ground.onload = () => {
+      this.resize();
+      this.draw();
+    };
 
     window.addEventListener("resize", this.resize);
     this.canvas.addEventListener("wheel", this.zoom);
+
+    this.canvas.addEventListener("mousemove", ev => {
+      const rect = canvas.getBoundingClientRect();
+
+      this.mouseX = ev.clientX - rect.left;
+      this.mouseY = ev.clientY - rect.top;
+    });
   }
 
   private zoom(ev: WheelEvent) {
-    const newZoom = this.zoomLevel - (ev.deltaY * 0.05);
-    if (newZoom > 0.6 && newZoom < 3.5) {
+    let delta = ev.deltaY;
+    if (delta > 3) delta = 3;
+    if (delta < -3) delta = -3;
+
+    let newZoom = this.zoomLevel - (delta * 0.05);
+    if (newZoom < 0.6) newZoom = 0.6;
+    if (newZoom > 3.5) newZoom = 3.5;
+    if (newZoom != this.zoomLevel) {
       this.zoomLevel = newZoom;
     }
   }
@@ -62,8 +81,6 @@ class Canvas {
     const size = Canvas.getSize();
     this.canvas.width = size;
     this.canvas.height = size;
-
-    this.draw();
   }
 
   public draw() {
@@ -81,10 +98,18 @@ class Canvas {
     const offsetX = -character.x * this.gridSize - (this.gridSize / 2);
     const offsetY = -character.y * this.gridSize - (this.gridSize / 2);
 
+    const matrix = this.context.getTransform().invertSelf();
 
-    this.drawScene(offsetX, offsetY);
-    this.renderCharacters(offsetX, offsetY);
+    const mx = this.mouseX;
+    const my = this.mouseY;
+
+    const mouseX = Math.round((mx * matrix.a + my * matrix.c + matrix.e) / this.gridSize) + character.x + this.gridSize;
+    const mouseY = Math.round((mx * matrix.b + my * matrix.d + matrix.f) / this.gridSize) + character.y + this.gridSize;
+
+    this.drawScene(offsetX, offsetY, mouseX, mouseY);
     this.renderChannels(offsetX, offsetY);
+    this.renderCharacterLabels(offsetX, offsetY);
+
 
     ctx.restore();
 
@@ -94,7 +119,7 @@ class Canvas {
     requestAnimationFrame(this.draw);
   }
 
-  public drawScene(offsetX: number, offsetY: number) {
+  public drawScene(offsetX: number, offsetY: number, mouseX: number, mouseY: number) {
     const gridSize = this.gridSize;
 
     const mapSize = this.mapSize;
@@ -104,39 +129,57 @@ class Canvas {
 
     if (!this.scene) return;
 
-    for (let i = 0; i < mapSize * mapSize; i++) {
-      const x = Math.floor(i / mapSize);
-      const y = i % mapSize;
+    for (let x = mapSize; x > 0; x--)
+      for (let y = 0; y < mapSize; y++) {
+        const tile = this.scene[y * mapSize + x];
 
-      const posX = (x - mapHalf) * gridSize + offsetX;
-      const posY = (y - mapHalf) * gridSize + offsetY;
+        if (tile === Tile.Void) continue;
 
-      const tile = this.scene[y * mapSize + x];
+        const tileFront = this.scene[(y + 1) * mapSize + x];
+        const tileLeft = this.scene[y * mapSize + (x - 1)];
 
-      switch (tile) {
-        case Tile.Ground:
-          context.fillStyle = "#2d2d2d";
-          context.fillRect(posX, posY, gridSize, gridSize);
-          break;
-        case Tile.Wall:
-          context.fillStyle = "#ffffff";
-          context.fillRect(posX, posY, gridSize, gridSize);
-          // cube(context, posX,posY, gridSize, "#ffffff");
-          break;
-        case Tile.Spawn:
-          context.fillStyle = "#aaaaaa";
-          context.fillRect(posX, posY, gridSize, gridSize);
-          break;
-        case Tile.Channel:
-          context.fillStyle = "#33cc33";
-          context.fillRect(posX, posY, gridSize, gridSize);
-          break;
-        case Tile.Exit:
-          context.fillStyle = "#ffaaff";
-          context.fillRect(posX, posY, gridSize, gridSize);
-          break;
+        const raised = tile === Tile.Wall;
+
+        const posX = (x - (!raised ? 1 : 0) - mapHalf) * gridSize + offsetX;
+        const posY = (y + (!raised ? 1 : 0) - mapHalf) * gridSize + offsetY;
+
+        let color = "#2d2d2d";
+        // console.log(x, y);
+        if (x === mouseX && y === mouseY) color = "#ff0000";
+        else if (x === 15 && y === 15) color = "#0000ff";
+        else {
+          switch (tile) {
+            case Tile.Wall:
+              color = "#aaaaaa";
+              break;
+            case Tile.Spawn:
+              color = "#555555";
+              break;
+            case Tile.Channel:
+              color = "#33cc33";
+              break;
+            case Tile.Exit:
+              color = "#ffaaff";
+              break;
+          }
+        }
+
+
+        cube({
+          ctx: context,
+          x: posX,
+          y: posY,
+          size: gridSize,
+          color,
+          drawFront: tileFront === Tile.Void || tileFront === Tile.Wall || tile === Tile.Wall,
+          drawLeft: tileLeft === Tile.Void || tileLeft === Tile.Wall || tile == Tile.Wall
+        });
+
+        // TODO: Figure a cheaper way of handling this
+        // It might be possible to use a binary array for the map and store it in here?
+        const character = this.characters.find(c => c.x === x - mapHalf && c.y === y - mapHalf);
+        if (character) this.renderCharacter(character, offsetX, offsetY);
       }
-    }
   }
 
   public renderChannels(offsetX: number, offsetY: number) {
@@ -151,7 +194,7 @@ class Canvas {
       (channel.y * this.gridSize) + offsetY + this.gridSize / 2));
   }
 
-  public renderCharacters(offsetX: number, offsetY: number) {
+  private renderCharacter(character: Character, offsetX: number, offsetY: number) {
     const ctx = this.context;
     const size = this.gridSize;
 
@@ -160,21 +203,52 @@ class Canvas {
     const x = (-cubeSize) / 2;
     const y = (-cubeSize) / 2;
 
-    this.characters.forEach(character => {
-      ctx.fillStyle = "#ffffff0a";
+    ctx.fillStyle = "#ffffff0a";
 
-      if (character.name == this.playerId) {
-        ctx.fillRect(-size / 2, -size / 2, size, size);
-        cube(ctx, x, y, cubeSize, character.color);
-      } else {
-        const posX = (character.x * size) + offsetX;
-        const posY = (character.y * size) + offsetY;
+    if (character.name == this.playerId) {
+      ctx.fillRect(-size / 2, -size / 2, size, size);
 
-        // ctx.fillRect(-size / 2, -size / 2, size, size);
-        cube(ctx, posX + size * 0.25, posY + size * 0.25, size * 0.5, character.color);
-      }
-    });
+      cube({ctx, x, y, size: cubeSize, color: character.color});
+    } else {
+      const posX = (character.x * size) + offsetX;
+      const posY = (character.y * size) + offsetY;
+
+      cube({
+        ctx,
+        x: posX + size * 0.25,
+        y: posY + size * 0.25,
+        size: size * 0.5,
+        color: character.color
+      });
+    }
   }
+
+  private renderCharacterLabels(offsetX: number, offsetY: number) {
+    const ctx = this.context;
+
+
+    ctx.save();
+    const matrix = ctx.getTransform();
+    ctx.resetTransform();
+
+    ctx.font = "18px Source Code Pro";
+
+    this.characters.forEach(character => {
+      ctx.fillStyle = "#ffffff";
+
+      const cx = character.x * this.gridSize + offsetX + this.gridSize;
+      const cy = character.y * this.gridSize + offsetY - this.gridSize;
+
+      const x = (cx * matrix.a) + (cy * matrix.c) + matrix.e;
+      const y = (cx * matrix.b) + (cy * matrix.d) + matrix.f;
+
+      ctx.fillText(character.name, x, y);
+    });
+
+    ctx.restore();
+
+  }
+
 
   public setChannels(channels: IChannel[]) {
     this.channels = channels;
