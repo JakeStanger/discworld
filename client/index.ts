@@ -86,6 +86,10 @@ class Controller {
     return this.sceneChannels.find(c => c.x === x && c.y === y);
   }
 
+  private getCharacterAt(x, y) {
+    return this.characters.find(c => c.x === x && c.y === y);
+  }
+
   public static getCoordinatesFromPixel(pixel: number) {
     const y = Math.floor(pixel / Controller.MAP_SIZE);
     const x = pixel % Controller.MAP_SIZE;
@@ -156,7 +160,7 @@ class Controller {
 
     const tile = this.getTileAt(x, y);
 
-    if (tile !== Tile.Void && tile !== Tile.Wall) {
+    if (tile !== Tile.Void && tile !== Tile.Wall && !this.getCharacterAt(x, y)) {
       character.x = x;
       character.y = y;
 
@@ -209,7 +213,12 @@ class Controller {
   }
 
   private _setCanvasCharacters() {
-    this.canvas.setCharacters(this.characters.filter(c => c.stage === this.scene));
+    this.canvas.setCharacters(this.characters
+      .filter(c => c.stage === this.scene)
+      .sort((a, b) => {
+        if(a.y === b.y) return b.x - a.x;
+        return a.y - b.y;
+      }));
   }
 }
 
