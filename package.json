@@ -5,7 +5,8 @@
   "license": "MIT",
   "scripts": {
     "build": "tsc",
-    "start": "node ."
+    "start": "node .",
+    "webpack:watch": "webpack --watch"
   },
   "dependencies": {
     "@types/ws": "^6.0.3",
