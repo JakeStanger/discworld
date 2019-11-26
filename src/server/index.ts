@@ -54,7 +54,7 @@ class WebServer {
   }
 
   public websocket() {
-    const wss = new WebSocket.Server({server: this.server});
+    const wss = new WebSocket.Server({port: config.port+1});
 
     let clients: IClient[] = [];
 
