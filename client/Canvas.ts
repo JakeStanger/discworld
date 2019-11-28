@@ -2,6 +2,7 @@ import IChannel from "./IChannel";
 import Character from "./Character";
 import Tile from "./Tile";
 import {cube} from "./entity/Cube";
+import {shadeColor} from "./utils";
 
 class Canvas {
   private canvas: HTMLCanvasElement;
@@ -142,23 +143,23 @@ class Canvas {
         const posY = (y + (!raised ? 1 : 0) - mapHalf) * gridSize + offsetY;
 
         let color = "#2d2d2d";
-        if (x === mouseX && y === mouseY) color = "#ff0000";
-        else {
-          switch (tile) {
-            case Tile.Wall:
-              color = "#aaaaaa";
-              break;
-            case Tile.Spawn:
-              color = "#555555";
-              break;
-            case Tile.Channel:
-              color = "#33cc33";
-              break;
-            case Tile.Exit:
-              color = "#ffaaff";
-              break;
-          }
+
+        switch (tile) {
+          case Tile.Wall:
+            color = "#aaaaaa";
+            break;
+          case Tile.Spawn:
+            color = "#555555";
+            break;
+          case Tile.Channel:
+            color = "#33cc33";
+            break;
+          case Tile.Exit:
+            color = "#ffaaff";
+            break;
         }
+
+        if(x === mouseX && y === mouseY && !raised) color = shadeColor(color, 20);
 
 
         cube({
@@ -208,7 +209,7 @@ class Canvas {
 
       cube({ctx, x, y, size: cubeSize, color: character.color});
     } else {
-      const posX = (character.posX* size) + offsetX;
+      const posX = (character.posX * size) + offsetX;
       const posY = (character.posY * size) + offsetY;
 
       cube({
@@ -238,7 +239,7 @@ class Canvas {
       const y = (cx * matrix.b) + (cy * matrix.d) + matrix.f;
 
       ctx.fillStyle = "#00000033";
-      ctx.fillRect(x-10, y-15, channel.name.length * 7 + 20, 9+15);
+      ctx.fillRect(x - 10, y - 15, channel.name.length * 7 + 20, 9 + 15);
 
       ctx.fillStyle = "#ffffff";
       ctx.fillText(channel.name, x, y);
@@ -256,7 +257,7 @@ class Canvas {
       const display = character.message || character.name;
 
       ctx.fillStyle = character.message ? "#ffffffaa" : "#00000033";
-      ctx.fillRect(x-10, y-20, display.length * 11 + 20, 9+20);
+      ctx.fillRect(x - 10, y - 20, display.length * 11 + 20, 9 + 20);
 
       ctx.fillStyle = character.message ? "#333333" : "#ffffff";
       ctx.fillText(display, x, y);
