@@ -1,10 +1,11 @@
 import * as express from "express";
 import * as kleur from "kleur";
 import * as config from "../config.json";
-import {Client} from "discord.js";
+import {Client, User} from "discord.js";
 import * as http from "http";
 import * as WebSocket from "ws";
 import IClient from "./IClient";
+import Markov from "../utils/Markov";
 
 class WebServer {
   private readonly app: express.Express;
@@ -53,7 +54,7 @@ class WebServer {
     });
   }
 
-  public websocket() {
+  public websocket() { // TODO: Migrate to to own class
     const wss = new WebSocket.Server({port: config.port+1});
 
     let clients: IClient[] = [];
@@ -107,6 +108,10 @@ class WebServer {
           case "change_scene":
             client.stage = data.scene;
             sendClientUpdate(client);
+            break;
+          case "msg":
+            const message = Markov.get().generate({id: "142688838127583232"} as User);
+            sendClientUpdate({name: client.name, message});
             break;
         }
       });
