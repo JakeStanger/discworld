@@ -12,6 +12,9 @@ class Database {
     this.database = new Sequelize(conf.name, conf.username, conf.password, {
       host: conf.host,
       dialect: conf.dialect,
+      dialectOptions: {
+        timezone: 'Etc/GMT0'
+      },
       define: {
         charset: 'utf8mb4',
         collate: 'utf8mb4_unicode_ci'
