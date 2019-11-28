@@ -63,11 +63,15 @@ class Connection {
   }
 
   public move(character: Character) {
-    this.ws.send(JSON.stringify({cmd: "move", pos: [character.x, character.y]}));
+    this.ws.send(JSON.stringify({cmd: "move", pos: [character.nextX, character.nextY]}));
   }
 
   public changeScene(character: Character) {
     this.ws.send(JSON.stringify({cmd: "change_scene", scene: character.stage}));
+  }
+
+  public message() {
+    this.ws.send(JSON.stringify({cmd: "msg"}));
   }
 }
 

@@ -18,3 +18,7 @@ export const shadeColor = (color, percent) => {
     + (B < 255 ? B < 1 ? 0 : B : 255))
     .toString(16).slice(1);
 };
+
+export const floatsEqual = (num1: number, num2: number, precision = 0.01) => {
+  return Math.abs(num1 - num2) < precision;
+}

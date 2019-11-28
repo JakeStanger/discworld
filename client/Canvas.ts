@@ -94,29 +94,27 @@ class Canvas {
     this.context.scale(this.zoomLevel, 0.5 * this.zoomLevel);
     this.context.rotate(-45 * Math.PI / 180);
 
-    const character = this.characters.find(c => c.name == this.playerId) || {x: 0, y: 0};
-    const offsetX = -character.x * this.gridSize - (this.gridSize / 2);
-    const offsetY = -character.y * this.gridSize - (this.gridSize / 2);
+    const character = this.characters.find(c => c.name == this.playerId) || {posX: 0, posY: 0};
+    const offsetX = -character.posX * this.gridSize - (this.gridSize / 2);
+    const offsetY = -character.posY * this.gridSize - (this.gridSize / 2);
 
     const matrix = this.context.getTransform().invertSelf();
 
     const mx = this.mouseX;
     const my = this.mouseY;
 
-    const mouseX = Math.round((mx * matrix.a + my * matrix.c + matrix.e) / this.gridSize) + character.x + this.gridSize;
-    const mouseY = Math.round((mx * matrix.b + my * matrix.d + matrix.f) / this.gridSize) + character.y + this.gridSize;
+    const mouseX = Math.round((mx * matrix.a + my * matrix.c + matrix.e) / this.gridSize) + character.posX + this.gridSize;
+    const mouseY = Math.round((mx * matrix.b + my * matrix.d + matrix.f) / this.gridSize) + character.posY + this.gridSize;
 
     this.drawScene(offsetX, offsetY, mouseX, mouseY);
-    this.renderChannels(offsetX, offsetY);
-    this.renderCharacterLabels(offsetX, offsetY);
-
+    this.renderLabels(offsetX, offsetY);
 
     ctx.restore();
 
     ctx.fillStyle = "#ffffff";
     ctx.fillText("Test", 10, 10);
 
-    requestAnimationFrame(this.draw);
+    // requestAnimationFrame(this.draw);
   }
 
   public drawScene(offsetX: number, offsetY: number, mouseX: number, mouseY: number) {
@@ -144,9 +142,7 @@ class Canvas {
         const posY = (y + (!raised ? 1 : 0) - mapHalf) * gridSize + offsetY;
 
         let color = "#2d2d2d";
-        // console.log(x, y);
         if (x === mouseX && y === mouseY) color = "#ff0000";
-        else if (x === 15 && y === 15) color = "#0000ff";
         else {
           switch (tile) {
             case Tile.Wall:
@@ -177,7 +173,9 @@ class Canvas {
 
         // TODO: Figure a cheaper way of handling this
         // It might be possible to use a binary array for the map and store it in here?
-        const character = this.characters.find(c => c.x === x - mapHalf && c.y === y - mapHalf);
+        const offX = x - mapHalf;
+        const offY = y - mapHalf;
+        const character = this.characters.find(c => c.x === offX && c.y === offY);
         if (character) this.renderCharacter(character, offsetX, offsetY);
       }
   }
@@ -210,8 +208,8 @@ class Canvas {
 
       cube({ctx, x, y, size: cubeSize, color: character.color});
     } else {
-      const posX = (character.x * size) + offsetX;
-      const posY = (character.y * size) + offsetY;
+      const posX = (character.posX* size) + offsetX;
+      const posY = (character.posY * size) + offsetY;
 
       cube({
         ctx,
@@ -223,27 +221,45 @@ class Canvas {
     }
   }
 
-  private renderCharacterLabels(offsetX: number, offsetY: number) {
+  private renderLabels(offsetX: number, offsetY: number) {
     const ctx = this.context;
 
     ctx.save();
     const matrix = ctx.getTransform();
     ctx.resetTransform();
 
-    ctx.font = "18px Source Code Pro";
+    ctx.font = "11px Source Code Pro";
 
-    this.characters.forEach(character => {
-      const cx = character.x * this.gridSize + offsetX + this.gridSize;
-      const cy = character.y * this.gridSize + offsetY - this.gridSize;
+    this.channels.forEach(channel => {
+      const cx = channel.x * this.gridSize + offsetX + this.gridSize;
+      const cy = channel.y * this.gridSize + offsetY - this.gridSize;
 
       const x = (cx * matrix.a) + (cy * matrix.c) + matrix.e;
       const y = (cx * matrix.b) + (cy * matrix.d) + matrix.f;
 
       ctx.fillStyle = "#00000033";
-      ctx.fillRect(x-10, y-20, character.name.length * 11 + 20, 9+20);
+      ctx.fillRect(x-10, y-15, channel.name.length * 7 + 20, 9+15);
 
       ctx.fillStyle = "#ffffff";
-      ctx.fillText(character.name, x, y);
+      ctx.fillText(channel.name, x, y);
+    });
+
+    ctx.font = "18px Source Code Pro";
+
+    this.characters.forEach(character => {
+      const cx = character.posX * this.gridSize + offsetX + this.gridSize;
+      const cy = character.posY * this.gridSize + offsetY - this.gridSize;
+
+      const x = (cx * matrix.a) + (cy * matrix.c) + matrix.e;
+      const y = (cx * matrix.b) + (cy * matrix.d) + matrix.f;
+
+      const display = character.message || character.name;
+
+      ctx.fillStyle = character.message ? "#ffffffaa" : "#00000033";
+      ctx.fillRect(x-10, y-20, display.length * 11 + 20, 9+20);
+
+      ctx.fillStyle = character.message ? "#333333" : "#ffffff";
+      ctx.fillText(display, x, y);
     });
 
     ctx.restore();
