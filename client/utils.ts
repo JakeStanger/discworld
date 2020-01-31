@@ -21,4 +21,8 @@ export const shadeColor = (color, percent) => {
 
 export const floatsEqual = (num1: number, num2: number, precision = 0.01) => {
   return Math.abs(num1 - num2) < precision;
-}
+};
+
+export const between = (num: number, min: number, max: number) => {
+  return min < num && num < max;
+};
