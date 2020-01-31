@@ -48,3 +48,5 @@ export const genmap = async (msg: Message) => {
 
   return await msg.reply("Map data generated");
 };
+
+genmap.help = "Generates a game map from an image";

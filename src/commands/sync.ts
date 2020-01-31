@@ -91,3 +91,5 @@ export const sync = async (msg: Message) => {
   await statusMessage.edit("", {embed: getEmbed(msg, false)});
   syncInProgress = false;
 };
+
+sync.help = "Synchronises all messages in the channel with the database";
