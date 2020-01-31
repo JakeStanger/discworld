@@ -1,8 +1,9 @@
 import IChannel from "./IChannel";
-import Character from "./Character";
+import Character from "./entity/character/Character";
 import Tile from "./Tile";
-import {cube} from "./entity/Cube";
-import {shadeColor} from "./utils";
+import { cube } from "./entity/Cube";
+import { shadeColor } from "./utils";
+import ChatBox from "./gui/Chatbox";
 
 class Canvas {
   private canvas: HTMLCanvasElement;
@@ -10,7 +11,7 @@ class Canvas {
 
   private channels: IChannel[] = [];
   private characters: Character[] = [];
-  private playerId: string;
+  private readonly playerId: number;
 
   private readonly gridSize: number;
   private readonly mapSize: number;
@@ -24,7 +25,15 @@ class Canvas {
   private mouseX: number;
   private mouseY: number;
 
-  constructor(canvas: HTMLCanvasElement, gridSize: number, mapSize: number, playerId: string) {
+  private readonly chatBox: ChatBox;
+
+  constructor(
+    canvas: HTMLCanvasElement,
+    gridSize: number,
+    mapSize: number,
+    playerId: number,
+    chatBox: ChatBox
+  ) {
     this.canvas = canvas;
     this.context = canvas.getContext("2d");
 
@@ -32,6 +41,8 @@ class Canvas {
     this.mapSize = mapSize;
 
     this.playerId = playerId;
+
+    this.chatBox = chatBox;
 
     this.draw = this.draw.bind(this);
     this.resize = this.resize.bind(this);
@@ -61,7 +72,7 @@ class Canvas {
     if (delta > 3) delta = 3;
     if (delta < -3) delta = -3;
 
-    let newZoom = this.zoomLevel - (delta * 0.05);
+    let newZoom = this.zoomLevel - delta * 0.05;
     if (newZoom < 0.6) newZoom = 0.6;
     if (newZoom > 3.5) newZoom = 3.5;
     if (newZoom != this.zoomLevel) {
@@ -93,19 +104,28 @@ class Canvas {
 
     this.context.translate(this.canvas.width / 2, this.canvas.height / 2);
     this.context.scale(this.zoomLevel, 0.5 * this.zoomLevel);
-    this.context.rotate(-45 * Math.PI / 180);
+    this.context.rotate((-45 * Math.PI) / 180);
 
-    const character = this.characters.find(c => c.name == this.playerId) || {posX: 0, posY: 0};
-    const offsetX = -character.posX * this.gridSize - (this.gridSize / 2);
-    const offsetY = -character.posY * this.gridSize - (this.gridSize / 2);
+    const character = this.characters.find(c => c.id == this.playerId) || {
+      posX: 0,
+      posY: 0
+    };
+    const offsetX = -character.posX * this.gridSize - this.gridSize / 2;
+    const offsetY = -character.posY * this.gridSize - this.gridSize / 2;
 
     const matrix = this.context.getTransform().invertSelf();
 
     const mx = this.mouseX;
     const my = this.mouseY;
 
-    const mouseX = Math.round((mx * matrix.a + my * matrix.c + matrix.e) / this.gridSize) + character.posX + this.gridSize;
-    const mouseY = Math.round((mx * matrix.b + my * matrix.d + matrix.f) / this.gridSize) + character.posY + this.gridSize;
+    const mouseX =
+      Math.round((mx * matrix.a + my * matrix.c + matrix.e) / this.gridSize) +
+      character.posX +
+      this.gridSize;
+    const mouseY =
+      Math.round((mx * matrix.b + my * matrix.d + matrix.f) / this.gridSize) +
+      character.posY +
+      this.gridSize;
 
     this.drawScene(offsetX, offsetY, mouseX, mouseY);
     this.renderLabels(offsetX, offsetY);
@@ -115,10 +135,17 @@ class Canvas {
     ctx.fillStyle = "#ffffff";
     ctx.fillText("Test", 10, 10);
 
+    this.chatBox.draw(ctx, this.mouseX, this.mouseY);
+
     // requestAnimationFrame(this.draw);
   }
 
-  public drawScene(offsetX: number, offsetY: number, mouseX: number, mouseY: number) {
+  public drawScene(
+    offsetX: number,
+    offsetY: number,
+    mouseX: number,
+    mouseY: number
+  ) {
     const gridSize = this.gridSize;
 
     const mapSize = this.mapSize;
@@ -159,8 +186,8 @@ class Canvas {
             break;
         }
 
-        if(x === mouseX && y === mouseY && !raised) color = shadeColor(color, 20);
-
+        if (x === mouseX && y === mouseY && !raised)
+          color = shadeColor(color, 20);
 
         cube({
           ctx: context,
@@ -168,49 +195,49 @@ class Canvas {
           y: posY,
           size: gridSize,
           color,
-          drawFront: tileFront === Tile.Void || tileFront === Tile.Wall || tile === Tile.Wall,
-          drawLeft: tileLeft === Tile.Void || tileLeft === Tile.Wall || tile == Tile.Wall
+          drawFront:
+            tileFront === Tile.Void ||
+            tileFront === Tile.Wall ||
+            tile === Tile.Wall,
+          drawLeft:
+            tileLeft === Tile.Void ||
+            tileLeft === Tile.Wall ||
+            tile == Tile.Wall
         });
 
         // TODO: Figure a cheaper way of handling this
         // It might be possible to use a binary array for the map and store it in here?
         const offX = x - mapHalf;
         const offY = y - mapHalf;
-        const character = this.characters.find(c => c.x === offX && c.y === offY);
+        const character = this.characters.find(
+          c => c.x === offX && c.y === offY
+        );
         if (character) this.renderCharacter(character, offsetX, offsetY);
       }
   }
 
-  public renderChannels(offsetX: number, offsetY: number) {
-    const ctx = this.context;
-
-    ctx.font = "12px Source Code Pro";
-
-    ctx.fillStyle = "#ffffff";
-
-    this.channels.forEach(channel => ctx.fillText(channel.name,
-      (channel.x * this.gridSize) + offsetX + this.gridSize / 8,
-      (channel.y * this.gridSize) + offsetY + this.gridSize / 2));
-  }
-
-  private renderCharacter(character: Character, offsetX: number, offsetY: number) {
+  private renderCharacter(
+    character: Character,
+    offsetX: number,
+    offsetY: number
+  ) {
     const ctx = this.context;
     const size = this.gridSize;
 
-    const cubeSize = size * 0.6 + (Math.sin(Date.now() / 500));
+    const cubeSize = size * 0.6 + Math.sin(Date.now() / 500);
 
-    const x = (-cubeSize) / 2;
-    const y = (-cubeSize) / 2;
+    const x = -cubeSize / 2;
+    const y = -cubeSize / 2;
 
     ctx.fillStyle = "#ffffff0a";
 
-    if (character.name == this.playerId) {
+    if (character.id == this.playerId) {
       ctx.fillRect(-size / 2, -size / 2, size, size);
 
-      cube({ctx, x, y, size: cubeSize, color: character.color});
+      cube({ ctx, x, y, size: cubeSize, color: character.color });
     } else {
-      const posX = (character.posX * size) + offsetX;
-      const posY = (character.posY * size) + offsetY;
+      const posX = character.posX * size + offsetX;
+      const posY = character.posY * size + offsetY;
 
       cube({
         ctx,
@@ -233,10 +260,10 @@ class Canvas {
 
     this.channels.forEach(channel => {
       const cx = channel.x * this.gridSize + offsetX + this.gridSize;
-      const cy = channel.y * this.gridSize + offsetY - this.gridSize;
+      const cy = channel.y * this.gridSize + offsetY;
 
-      const x = (cx * matrix.a) + (cy * matrix.c) + matrix.e;
-      const y = (cx * matrix.b) + (cy * matrix.d) + matrix.f;
+      const x = cx * matrix.a + cy * matrix.c + matrix.e;
+      const y = cx * matrix.b + cy * matrix.d + matrix.f;
 
       ctx.fillStyle = "#00000033";
       ctx.fillRect(x - 10, y - 15, channel.name.length * 7 + 20, 9 + 15);
@@ -251,10 +278,10 @@ class Canvas {
       const cx = character.posX * this.gridSize + offsetX + this.gridSize;
       const cy = character.posY * this.gridSize + offsetY - this.gridSize;
 
-      const x = (cx * matrix.a) + (cy * matrix.c) + matrix.e;
-      const y = (cx * matrix.b) + (cy * matrix.d) + matrix.f;
+      const x = cx * matrix.a + cy * matrix.c + matrix.e;
+      const y = cx * matrix.b + cy * matrix.d + matrix.f;
 
-      const display = character.message || character.name;
+      const display = character.message || character.displayName;
 
       ctx.fillStyle = character.message ? "#ffffffaa" : "#00000033";
       ctx.fillRect(x - 10, y - 20, display.length * 11 + 20, 9 + 20);
@@ -265,7 +292,6 @@ class Canvas {
 
     ctx.restore();
   }
-
 
   public setChannels(channels: IChannel[]) {
     this.channels = channels;

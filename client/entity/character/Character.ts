@@ -1,21 +1,20 @@
-import {floatsEqual} from "./utils";
-
-export interface ICharacter {
-  name: string,
-  x: number,
-  y: number,
-  color: string,
-  stage: string
-}
+import { floatsEqual } from "../../utils";
+import ICharacter from "./ICharacter";
+import Direction from "./Direction";
 
 /**
  * A player object
  */
-class Character {
+class Character implements ICharacter {
   /**
-   * The player name
+   * The player id
    */
-  public name: string;
+  public id: number;
+
+  /**
+   * the player display name
+   */
+  public displayName: string;
 
   /**
    * The player color
@@ -25,7 +24,7 @@ class Character {
   /**
    * The current scene
    */
-  public stage: string;
+  public scene: string = "spawn";
 
   /**
    * The current tile X position
@@ -54,6 +53,11 @@ class Character {
   public deltaY: number = 0;
 
   /**
+   * The direction the character is pointing
+   */
+  public direction: Direction;
+
+  /**
    * The X distance from the current tile
    */
   private offsetX: number = 0;
@@ -77,13 +81,15 @@ class Character {
 
 
   constructor(data: Partial<ICharacter>) {
-    const {name, x, y, color, stage} = data;
+    const { id, x, y, color, scene } = data;
 
-    if (name !== undefined) this.name = name;
+    if (id !== undefined) this.id = id;
     if (x !== undefined) this.x = x;
     if (y !== undefined) this.y = y;
     if (color !== undefined) this.color = color;
-    if (stage !== undefined) this.stage = stage;
+    if (scene !== undefined) this.scene = scene;
+
+    this.displayName = "Player #" + id;
   }
 
   /**
@@ -124,40 +130,45 @@ class Character {
    * This is called once per tick.
    */
   public move() {
-    if(this.messsageCooldown) {
+    if (this.messsageCooldown) {
       this.messsageCooldown--;
-      if(this.messsageCooldown === 0) this.message = undefined;
+      if (this.messsageCooldown === 0) this.message = undefined;
     }
 
-    if(this.isMoving) {
-      if(this.deltaX > 0) {
-        this.offsetX += Character.SPEED;
-        this.deltaX -= Character.SPEED;
-      }
-      else if(this.deltaX < 0) {
-        this.offsetX -= Character.SPEED;
-        this.deltaX += Character.SPEED;
+    const distanceX = Math.abs(this.x - this.nextX);
+    const distanceY = Math.abs(this.y - this.nextY);
+
+    const distance = Math.sqrt(Math.pow(distanceX, 2) + Math.pow(distanceY, 2));
+
+    const speed = Character.SPEED * Math.sqrt(distance);
+    const precision = speed * 1.1;
+
+    const distanceXTravelled = Math.abs(this.x - this.posX);
+    const distanceYTravelled = Math.abs(this.y - this.posY);
+
+    const distanceTravelled = Math.sqrt(Math.pow(distanceXTravelled, 2) + Math.pow(distanceYTravelled, 2));
+
+    if (this.isMoving) {
+      if (this.deltaX > 0) {
+        this.offsetX += speed;
+      } else if (this.deltaX < 0) {
+        this.offsetX -= speed;
       }
 
-      if(this.deltaY > 0) {
-        this.offsetY += Character.SPEED;
-        this.deltaY -= Character.SPEED;
-      }
-      else if(this.deltaY < 0) {
-        this.offsetY -= Character.SPEED;
-        this.deltaY += Character.SPEED;
+      if (this.deltaY > 0) {
+        this.offsetY += speed;
+      } else if (this.deltaY < 0) {
+        this.offsetY -= speed;
       }
 
-      if(floatsEqual(Math.abs(this.offsetX), 1)) {
+      if (floatsEqual(distance, distanceTravelled, precision)) {
         this.x += Math.round(this.offsetX);
-        this.offsetX = 0;
-      }
-      if(floatsEqual(Math.abs(this.offsetY), 1)) {
         this.y += Math.round(this.offsetY);
+        this.offsetX = 0;
         this.offsetY = 0;
       }
 
-      if(this.offsetX === 0 && this.offsetY === 0) {
+      if (this.offsetX === 0 && this.offsetY === 0) {
         this.isMoving = false;
         this.deltaX = 0;
         this.deltaY = 0;
@@ -173,12 +184,20 @@ class Character {
    * @param deltaY The Y distance to add
    */
   public setDelta(deltaX: number, deltaY: number) {
-    if (!this.isMoving) {
-      this.deltaX = deltaX;
-      this.deltaY = deltaY;
+    this.deltaX = deltaX;
+    this.deltaY = deltaY;
 
-      this.isMoving = true;
-    }
+    this.setDirection();
+
+    this.isMoving = true;
+  }
+
+  private setDirection() {
+     if(this.deltaY > 0) this.direction = Direction.Down;
+     else if(this.deltaY < 0) this.direction = Direction.Up;
+
+     if (this.deltaX > 0) this.direction = Direction.Right;
+     else if(this.deltaX < 0) this.direction = Direction.Left;
   }
 
   public setMessage(message: string) {

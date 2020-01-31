@@ -2,16 +2,14 @@ import {Channel, Client, Collection, Webhook} from "discord.js";
 import * as config from "../config.json";
 import fetch from "node-fetch";
 import * as kleur from "kleur";
+import DiscordHelper from "./DiscordHelper";
 
 class Webhooks {
-  private readonly client: Client;
-
   private static instance: Webhooks;
 
   private webhooks: Collection<string, Webhook>;
 
-  constructor(client: Client) {
-    this.client = client;
+  constructor() {
     Webhooks.instance = this;
   }
 
@@ -20,9 +18,11 @@ class Webhooks {
   }
 
   public async load() {
-    const channels = await this.client.guilds.get(config.guild).channels;
+    const client = DiscordHelper.client;
 
-    const existingWebhooks = await this.client.guilds.get(config.guild).fetchWebhooks();
+    const channels = await client.guilds.get(config.guild).channels;
+
+    const existingWebhooks = await client.guilds.get(config.guild).fetchWebhooks();
 
     await Promise.all(channels.map(channel => new Promise(resolve => {
       const existingHook = existingWebhooks.find(hook => hook.channelID === channel.id);
@@ -30,7 +30,7 @@ class Webhooks {
         fetch(`https://discordapp.com/api/v6/channels/${channel.id}/webhooks`, {
           method: "POST",
           headers: {
-            Authorization: "Bot " + this.client.token,
+            Authorization: "Bot " + client.token,
             Accept: "application/json",
             "Content-Type": "application/json"
           },
@@ -41,7 +41,7 @@ class Webhooks {
       } else resolve();
     })));
 
-    this.webhooks = await this.client.guilds.get(config.guild).fetchWebhooks();
+    this.webhooks = await client.guilds.get(config.guild).fetchWebhooks();
   }
 
   public getHook(channel: Channel) {

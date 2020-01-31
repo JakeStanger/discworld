@@ -1,4 +1,5 @@
 import {shadeColor} from "../utils";
+import Direction from "./character/Direction";
 
 export interface ICube {
   ctx: CanvasRenderingContext2D,
@@ -8,7 +9,8 @@ export interface ICube {
   color: string,
   drawLeft?: boolean,
   drawFront?: boolean,
-  drawTop?: boolean
+  drawTop?: boolean,
+  direction?: Direction
 }
 
 export const cube = (options: ICube) => {
