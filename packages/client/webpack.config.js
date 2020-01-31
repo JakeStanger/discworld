@@ -1,10 +1,10 @@
 module.exports = {
-  entry: "./client/index.ts",
+  entry: "./src/index.ts",
   devtool: "source-map",
   mode: "development",
   output: {
     filename: "bundle.js",
-    path: __dirname + "/public/js"
+    path: __dirname + "/../server/public/js"
   },
   resolve: {
     extensions: [".ts", ".tsx", ".js"]

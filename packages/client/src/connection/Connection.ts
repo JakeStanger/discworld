@@ -1,5 +1,5 @@
 import Character from "../entity/character/Character";
-import Message from "./Message";
+import { Message } from "@discworld/common";
 import Controller from "../Controller";
 import * as utf8 from "utf8";
 import ICharacter from "../entity/character/ICharacter";

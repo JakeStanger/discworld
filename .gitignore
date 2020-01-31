@@ -1,9 +1,9 @@
 # Project exclude paths
-/node_modules/
-/public/js/
-/build/
-
-src/config.json
-/markov/
+node_modules
+lib
+markov
+bundle.js
 
 *.log
+*.map
+config.json

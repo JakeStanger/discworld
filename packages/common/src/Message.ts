@@ -1,4 +1,4 @@
-enum Message {
+export enum Message {
   Move,
   Scene,
   Message,
@@ -6,5 +6,3 @@ enum Message {
   Login,
   ClientList,
 }
-
-export default Message

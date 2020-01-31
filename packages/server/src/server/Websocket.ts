@@ -8,7 +8,7 @@ import { GuildMember, User } from "discord.js";
 import * as crypto from "crypto";
 import Webhooks from "../utils/Webhooks";
 import DiscordHelper from "../utils/DiscordHelper";
-import Message from "./Message";
+import { Message } from "@discworld/common";
 
 class WebsocketServer {
   private static instance: WebsocketServer;
@@ -127,19 +127,19 @@ class WebsocketConnection {
 
         sendClientUpdate(moveData);
         break;
-      case Message.Stage:
+      case Message.Scene:
         const stageEncoded = msg.slice(1);
 
         const dec = new TextDecoder();
         const stage = dec.decode(stageEncoded);
         client.stage = stage;
 
-        const stageData = new Uint16Array(2 + stageEncoded.length);
-        stageData[0] = Message.Stage;
-        stageData[1] = client.id;
-        stageData.set(stageEncoded, 2);
+        const sceneData = new Uint16Array(2 + stageEncoded.length);
+        sceneData[0] = Message.Scene;
+        sceneData[1] = client.id;
+        sceneData.set(stageEncoded, 2);
 
-        sendClientUpdate(stageData);
+        sendClientUpdate(sceneData);
         break;
       case Message.Message:
         if (this.discordId) {

@@ -1,0 +1,19 @@
+{
+  "name": "@discworld/client",
+  "version": "0.0.1",
+  "license": "MIT",
+  "scripts": {
+    "build": "webpack",
+    "start": "webpack --watch"
+  },
+  "dependencies": {
+    "@discworld/common": "0.0.1",
+    "utf8": "^3.0.0"
+  },
+  "devDependencies": {
+    "@types/utf8": "^2.1.6",
+    "ts-loader": "^6.2.1",
+    "webpack": "^4.41.2",
+    "webpack-cli": "^3.3.10"
+  }
+}
