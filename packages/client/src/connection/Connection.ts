@@ -15,7 +15,6 @@ class Connection {
   private readonly updateCharacter: CharacterFunc;
   private readonly removeCharacter: CharacterFunc;
 
-
   constructor(playerId: number, addCharacter: CharacterFunc, updateCharacter: CharacterFunc, removeCharacter: CharacterFunc) {
     this.addCharacter = addCharacter;
     this.updateCharacter = updateCharacter;
@@ -144,8 +143,6 @@ class Connection {
   public message(message?: string) {
     const data = new Uint8Array(1 + (message ? message.length : 0));
     data[0] = Message.Message;
-
-    console.log(message);
 
     const enc = new TextEncoder();
     const encoded = enc.encode(message);

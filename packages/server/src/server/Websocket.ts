@@ -102,11 +102,11 @@ class WebsocketConnection {
     let client = this.client;
     const sendClientUpdate = WebsocketServer.get().sendClientUpdate;
 
-    console.log(
-      kleur.cyan(Message[msg[0]].toUpperCase()),
-      this.client ? kleur.magenta(this.client.id) : "",
-      msg.slice(1)
-    );
+    // console.log(
+    //   kleur.cyan(Message[msg[0]].toUpperCase()),
+    //   this.client ? kleur.magenta(this.client.id) : "",
+    //   msg.slice(1)
+    // );
 
     const command = msg[0];
     switch (command) {
