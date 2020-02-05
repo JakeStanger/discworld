@@ -1,3 +1,5 @@
-export { Message } from "./Message";
+export * from "./Message";
+export * from "./Map";
+export * from "./Tile";
 
 // stub

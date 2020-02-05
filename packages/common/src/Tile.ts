@@ -1,4 +1,4 @@
-enum Tile {
+export enum Tile {
   Void,
   Ground ,
   Wall,
@@ -6,5 +6,3 @@ enum Tile {
   Channel,
   Exit
 }
-
-export default Tile;

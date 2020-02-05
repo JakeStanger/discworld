@@ -1,12 +1,12 @@
 import IChannel from "./IChannel";
 import Canvas from "./Canvas";
 import Character from "./entity/character/Character";
-import Tile from "./Tile";
+import { Tile } from "@discworld/common";
 import { shuffle } from "./utils";
 import Connection from "./connection/Connection";
 import Keyboard from "./Keyboard";
 import ChatBox from "./gui/Chatbox";
-
+import { decodeMap, MapDictionary } from "@discworld/common";
 class Controller {
   public static MAP_SIZE = 64;
   private static GRID_SIZE = 32;
@@ -18,7 +18,7 @@ class Controller {
   private keyboard: Keyboard;
 
   private scene: string;
-  private maps: { [key: string]: number[] } = {};
+  private maps: { [key: string]: MapDictionary } = {};
 
   private characters: Character[] = [];
   private player: Character;
@@ -80,9 +80,9 @@ class Controller {
     this.scene = scene;
 
     if (!this.maps[scene])
-      await fetch(`/map/${scene}.json`)
-        .then(r => r.json())
-        .then(map => (this.maps[scene] = map));
+      await fetch(`/map/${scene}`)
+        .then(r => r.arrayBuffer())
+        .then(map => (this.maps[scene] = decodeMap(map)));
     this.canvas.setScene(this.maps[scene]);
 
     const character = this.player;
@@ -117,12 +117,14 @@ class Controller {
     if (this.connection) this.connection.changeStage(character);
   }
 
-  private getTileAt(x, y) {
+  private getTileAt(x, y): Tile {
     const offsetX = x + Controller.MAP_SIZE / 2;
     const offsetY = y + Controller.MAP_SIZE / 2;
 
     const scene = this.maps[this.scene];
-    return scene[offsetY * Controller.MAP_SIZE + offsetX];
+    return parseInt(Object.keys(scene).find(
+      tile => scene[tile].indexOf(offsetY * Controller.MAP_SIZE + offsetX) > -1
+    ));
   }
 
   private getChannelAt(x, y) {
@@ -142,10 +144,7 @@ class Controller {
 
   private getRandomSpawn() {
     const scene = this.maps[this.scene];
-    const spawns = scene.reduce((array, tile, i) => {
-      if (tile === Tile.Spawn) array.push(i);
-      return array;
-    }, []);
+    const spawns = scene[Tile.Spawn];
 
     shuffle(spawns);
     return Controller.getCoordinatesFromPixel(spawns[0]);
@@ -153,10 +152,10 @@ class Controller {
 
   private getRandomChannelLocations(num: number) {
     const scene = this.maps[this.scene];
-    const channels = scene.reduce((array, tile, i) => {
-      if (tile === Tile.Channel) array.push(i);
-      return array;
-    }, []);
+    const channels = scene[Tile.Channel];
+
+    // Not all maps have channel teleporters
+    if(!channels) return [];
 
     shuffle(channels);
 
@@ -194,7 +193,7 @@ class Controller {
 
         break;
       case "Escape":
-        if(this.chatBox.isFocused()) this.chatBox.blur();
+        if (this.chatBox.isFocused()) this.chatBox.blur();
     }
   }
 

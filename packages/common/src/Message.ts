@@ -6,3 +6,11 @@ export enum Message {
   Login,
   ClientList,
 }
+
+export function encodeMessage() {
+  // TODO: Write function
+}
+
+export function decodeMessage () {
+  // TODO: Write function
+}

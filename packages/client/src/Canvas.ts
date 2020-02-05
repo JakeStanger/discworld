@@ -1,9 +1,22 @@
 import IChannel from "./IChannel";
 import Character from "./entity/character/Character";
-import Tile from "./Tile";
+import { Tile } from "@discworld/common";
 import { cube } from "./entity/Cube";
 import { shadeColor } from "./utils";
 import ChatBox from "./gui/Chatbox";
+import { MapDictionary } from "@discworld/common";
+
+type RenderCharacter = {
+  character: Character;
+  isCharacter: boolean;
+  index: number;
+};
+
+function isRenderCharacter(
+  object: number | RenderCharacter
+): object is RenderCharacter {
+  return (object as RenderCharacter).isCharacter;
+}
 
 class Canvas {
   private canvas: HTMLCanvasElement;
@@ -15,12 +28,13 @@ class Canvas {
 
   private readonly gridSize: number;
   private readonly mapSize: number;
+  private readonly mapHalf: number;
 
   private zoomLevel: number = 1;
 
   private ground: HTMLImageElement;
 
-  private scene: number[];
+  private scene: MapDictionary;
 
   private mouseX: number;
   private mouseY: number;
@@ -39,6 +53,7 @@ class Canvas {
 
     this.gridSize = gridSize;
     this.mapSize = mapSize;
+    this.mapHalf = mapSize / 2;
 
     this.playerId = playerId;
 
@@ -136,8 +151,89 @@ class Canvas {
     ctx.fillText("Test", 10, 10);
 
     this.chatBox.draw(ctx, this.mouseX, this.mouseY);
+  }
 
-    // requestAnimationFrame(this.draw);
+  private async _drawTiles(
+    tile: Tile,
+    offsetX,
+    offsetY,
+    mouseX: number,
+    mouseY: number
+  ) {
+    const gridSize = this.gridSize;
+    const mapSize = this.mapSize;
+    const mapHalf = this.mapHalf;
+
+    const raised = tile === Tile.Wall;
+
+    let color = "#2d2d2d";
+
+    switch (tile) {
+      case Tile.Wall:
+        color = "#aaaaaa";
+        break;
+      case Tile.Spawn:
+        color = "#555555";
+        break;
+      case Tile.Channel:
+        color = "#33cc33";
+        break;
+      case Tile.Exit:
+        color = "#ffaaff";
+        break;
+    }
+
+    const tileMap: (number | RenderCharacter)[] = [...this.scene[tile]];
+
+    if (!tileMap) return;
+
+    if (tile === Tile.Wall) {
+      const characters: RenderCharacter[] = this.characters.map(character => ({
+        index: character.x + mapHalf + (character.y + mapHalf) * mapSize,
+        isCharacter: true,
+        character
+      }));
+
+      characters.forEach(character => {
+        const upperIndex: number = tileMap.reduce(
+          (prev: number, curr: number) =>
+            curr > character.index &&
+            Math.abs(curr - character.index) < Math.abs(prev - character.index)
+              ? curr
+              : prev
+        ) as number;
+
+        tileMap.splice(tileMap.indexOf(upperIndex) + 1, 0, character);
+      });
+    }
+
+    tileMap.forEach(index => {
+      if (isRenderCharacter(index)) {
+        this.renderCharacter(index.character, offsetX, offsetY);
+        return;
+      }
+
+      const y = Math.floor((index as number) / mapSize);
+      const x = (index as number) % mapSize;
+
+      let tileColor = color;
+
+      if (x === mouseX && y === mouseY && !raised)
+        tileColor = shadeColor(color, 20);
+
+      const posX = (x - (!raised ? 1 : 0) - mapHalf) * gridSize + offsetX;
+      const posY = (y + (!raised ? 1 : 0) - mapHalf) * gridSize + offsetY;
+
+      cube({
+        ctx: this.context,
+        x: posX,
+        y: posY,
+        size: gridSize,
+        color: tileColor,
+        drawLeft: raised,
+        drawFront: raised
+      });
+    });
   }
 
   public drawScene(
@@ -146,74 +242,20 @@ class Canvas {
     mouseX: number,
     mouseY: number
   ) {
-    const gridSize = this.gridSize;
-
-    const mapSize = this.mapSize;
-    const mapHalf = mapSize / 2;
-
-    const context = this.context;
-
     if (!this.scene) return;
 
-    for (let x = mapSize; x > 0; x--)
-      for (let y = 0; y < mapSize; y++) {
-        const tile = this.scene[y * mapSize + x];
+    // get required character information
+    const tiles = Object.keys(this.scene).map(tile => parseInt(tile));
 
-        if (tile === Tile.Void) continue;
+    // Only render z = 0 on first pass
+    tiles
+      .filter(tile => tile !== Tile.Wall && tile !== Tile.Void)
+      .forEach(tile => this._drawTiles(tile, offsetX, offsetY, mouseX, mouseY));
 
-        const tileFront = this.scene[(y + 1) * mapSize + x];
-        const tileLeft = this.scene[y * mapSize + (x - 1)];
-
-        const raised = tile === Tile.Wall;
-
-        const posX = (x - (!raised ? 1 : 0) - mapHalf) * gridSize + offsetX;
-        const posY = (y + (!raised ? 1 : 0) - mapHalf) * gridSize + offsetY;
-
-        let color = "#2d2d2d";
-
-        switch (tile) {
-          case Tile.Wall:
-            color = "#aaaaaa";
-            break;
-          case Tile.Spawn:
-            color = "#555555";
-            break;
-          case Tile.Channel:
-            color = "#33cc33";
-            break;
-          case Tile.Exit:
-            color = "#ffaaff";
-            break;
-        }
-
-        if (x === mouseX && y === mouseY && !raised)
-          color = shadeColor(color, 20);
-
-        cube({
-          ctx: context,
-          x: posX,
-          y: posY,
-          size: gridSize,
-          color,
-          drawFront:
-            tileFront === Tile.Void ||
-            tileFront === Tile.Wall ||
-            tile === Tile.Wall,
-          drawLeft:
-            tileLeft === Tile.Void ||
-            tileLeft === Tile.Wall ||
-            tile == Tile.Wall
-        });
-
-        // TODO: Figure a cheaper way of handling this
-        // It might be possible to use a binary array for the map and store it in here?
-        const offX = x - mapHalf;
-        const offY = y - mapHalf;
-        const character = this.characters.find(
-          c => c.x === offX && c.y === offY
-        );
-        if (character) this.renderCharacter(character, offsetX, offsetY);
-      }
+    // Render entities with z = 1
+    tiles
+      .filter(tile => tile === Tile.Wall)
+      .forEach(tile => this._drawTiles(tile, offsetX, offsetY, mouseX, mouseY));
   }
 
   private renderCharacter(
@@ -301,7 +343,7 @@ class Canvas {
     this.characters = characters;
   }
 
-  public setScene(scene: number[]) {
+  public setScene(scene: MapDictionary) {
     this.scene = scene;
   }
 }
