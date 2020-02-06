@@ -189,6 +189,7 @@ class Controller {
         if (this.chatBox.isFocused()) {
           this.connection.message(this.chatBox.getValue());
           this.chatBox.setValue("");
+          this.chatBox.blur();
         } else this.chatBox.focus();
 
         break;
