@@ -17,14 +17,7 @@ class ChatBox {
 
     document.body.append(this.input);
 
-    // this.focus();
-
-    // this.input.addEventListener("blur", () => {
-    //   this.hasFocus = false;
-    // })
-
     document.addEventListener("click", ev => {
-      console.log(this.mouseX, this.mouseY);
       if (!this.isFocused() && this.mouseIsOver()) {
         ev.preventDefault();
         this.focus();
@@ -35,8 +28,6 @@ class ChatBox {
   public draw(ctx: CanvasRenderingContext2D, mouseX: number, mouseY: number) {
     const BOX_WIDTH = ctx.canvas.width - 40;
     const BOX_HEIGHT = 50;
-
-    // console.log(document.activeElement);
 
     // how not to program :)
     this.mouseX = mouseX;
@@ -67,19 +58,14 @@ class ChatBox {
   }
 
   public focus() {
-    console.log("focus");
     this.input.focus();
-    console.log(document.activeElement);
-    // this.hasFocus = true;
   }
 
   public blur() {
     this.input.blur();
-    // this.hasFocus = false;
   }
 
   public isFocused() {
-    // return this.hasFocus;
     return this.input === document.activeElement;
   }
 
@@ -92,8 +78,6 @@ class ChatBox {
   }
 
   private mouseIsOver() {
-    // 20, ctx.canvas.height - BOX_HEIGHT - 20, BOX_WIDTH, BOX_HEIGHT
-
     // more examples of how not to write code :|
     const BOX_WIDTH = this.ctx.canvas.width * 0.7;
     const BOX_HEIGHT = 50;
